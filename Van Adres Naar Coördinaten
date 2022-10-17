@@ -1,0 +1,44 @@
+    # Bij het gebruik maken van datasets met locatie gegevens komt het vaak voor dat deze als adres zijn aangegeven. 
+    # Om deze gegevens bruikbaar te maken worden deze omgezet worden naar coördinaten. 
+    # In dit report laat ik je zien hoe je doormiddel van de Geopy package eenvoudig je adresgegevens kan omzetten naar coördinaten
+
+
+
+    # Importeer de door jou gebruikte dataset
+import pandas as pd
+adres_data = pd.read_csv("adres_api.csv")
+adres_data
+
+Voorbeeld data:
+	Adres
+1	Koegorsstraat, Terneuzen
+2	Osloweg 1, Terneuzen
+3	Nijverheidsstraat 17, Terneuzen
+4	Finlandweg 10, Terneuzen
+
+
+    # Het opvragen van de coordinaten, Bij grote requests moet je een limiter gebruiken, in dit voorbeeld is het dataframe klein dus is het eigenlijk niet nodig
+    # TIP! Heb je veel adressen, pas de unique() functie toe op je dataframe. Zo vraag je niet twee keer hetzelfde adres op. Dit kan veel wachttijd besparen!
+from geopy.geocoders import Nominatim
+locator = Nominatim(user_agent="MyGeocoder")
+
+from geopy.extra.rate_limiter import RateLimiter
+geocode = RateLimiter(locator.geocode, min_delay_seconds=1)
+
+adres_api['location'] = adres_api['Adres'].apply(geocode)
+adres_api['point'] = adres_api['location'].apply(lambda loc: tuple(loc.point) if loc else None)
+adres_api[['latitude', 'longitude', 'altitude']] = pd.DataFrame(adres_api['point'].tolist(), index=adres_api.index)
+
+adres_api = adres_api.drop(["location", "point", "altitude"], axis = 1)
+
+    # Het resultaat
+         Adres	                      latitude	        longitude
+1	Koegorsstraat, Terneuzen	51.285429	3.854150
+2	Osloweg 1, Terneuzen	51.305095	3.838525
+3	Nijverheidsstraat 17, Terneuzen	51.306577	3.846915
+4	Finlandweg 10, Terneuzen	51.268073	3.845571
+
+
+    # Zoals je kan zien wordt er op verschillende manieren een locatie opgevraagd, zowel met als zonder huisnummer
+    # Geopy interpreteert zelf de adresgegevens, als deze niet duidelijk zijn zal het ook geen coördinaten teruggeven
+    
